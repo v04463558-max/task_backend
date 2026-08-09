@@ -5,23 +5,22 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "node src/server.js",
-    "st    "start": "node src/server.js",
-a:generate": "prisma generate",
+    "start": "node src/server.js",
+    "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "postinst    "prisma:deploy": "prisma migrate deploy",
-all": "prisma generate",
-    "test": "node --check src/server.js && node --check src/app.js && node --check src/controllers/authController.js && node --check src/controllers/categoryController.js && node --check src/controllers/taskController.js && node --check src/models/categoryModel.js && node --check src/models/taskModel.js"
+    "prisma:deploy": "prisma migrate deploy",
+    "postinstall": "prisma generate",
+    "test": "node --check src/server.js && node --check src/app.js && node --check src/db.js && node --check src/config/env.js && node --check src/controllers/authController.js && node --check src/controllers/categoryController.js && node --check src/controllers/taskController.js && node --check src/models/categoryModel.js && node --check src/models/taskModel.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/adapter-    "@prisma/client": "^7.9.1",
     "@prisma/adapter-mariadb": "^7.9.1",
-,
+    "@prisma/client": "^7.9.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "mysql2": "^3.23.2",
     "prisma": "^7.9.1"
   }
 }
