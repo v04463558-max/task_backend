@@ -25,7 +25,19 @@ npm install
 
 ```powershell
 copy .env.example .env
-# Edit DATABASE_URL, JWT_SECRET, PORT (optional)
+# Edit DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DATABASE, PORT, JWT_SECRET
+```
+
+Local `.env` example:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=
+DATABASE=task_tracker
+PORT=3000
+JWT_SECRET="replace-with-a-long-random-secret"
 ```
 
 3. Prisma setup (generate client, run migrations):
@@ -37,36 +49,33 @@ npm run prisma:migrate
 
 4. Start server (default PORT 3000):
 
-PowerShell (Windows):
-
 ```powershell
 cd my_backend
-$env:PORT=3000
 npm run dev
 ```
 
-Windows Command Prompt (cmd.exe):
-
-```cmd
-cd my_backend
-set PORT=4000
-npm.cmd run dev
-```
-
-On Unix/macOS:
-
-```bash
-cd my_backend
-PORT=4000 npm run dev
-```
+API is available at `http://localhost:3000` (or whatever `PORT` you set).
 
 ## Environment variables
 
-- `DATABASE_URL` — MySQL connection string used by Prisma
-- `PORT` — API port (default 4000)
+**Database (required — use these):**
+
+| Variable | Description | Local example |
+|---|---|---|
+| `DB_HOST` | MySQL host | `localhost` |
+| `DB_PORT` | MySQL port | `3306` |
+| `DB_USERNAME` | MySQL user | `root` |
+| `DB_PASSWORD` | MySQL password (can be empty) | *(blank)* |
+| `DATABASE` | Database name | `task_tracker` |
+| `PORT` | API listen port | `3000` |
+
+**App:**
+
 - `JWT_SECRET` — secret for signing JWTs
 - `JWT_EXPIRES_IN_SECONDS` — token lifetime (optional)
 - `CORS_ORIGIN` — allowed origin for CORS (optional)
+
+**Railway:** set the same `DB_*` vars from your MySQL service (or link MySQL — the app also reads `MYSQL_*` / `MYSQL_URL`). Railway injects `PORT` automatically. The process binds `0.0.0.0` so the proxy can reach it without crashing.
 
 ## API Endpoints (prefix: `/api`)
 

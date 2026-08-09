@@ -5,49 +5,65 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 /**
- * Build a mysql:// URL from discrete env vars.
- * Covers Railway MySQL plugin vars (MYSQLHOST, …) and common DB_* aliases.
+ * Preferred app env vars (local + Railway):
+ *   DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DATABASE, PORT
+ *
+ * Fallbacks keep Railway MySQL plugin / DATABASE_URL working so deploy
+ * does not crash if you only linked the MySQL service.
  */
-function buildDatabaseUrlFromParts() {
+function readDbParts() {
   const host =
+    process.env.DB_HOST ||
     process.env.MYSQLHOST ||
     process.env.MYSQL_HOST ||
-    process.env.DB_HOST ||
-    process.env.DB_HOSTNAME;
+    process.env.DB_HOSTNAME ||
+    "localhost";
+
   const user =
+    process.env.DB_USERNAME ||
+    process.env.DB_USER ||
     process.env.MYSQLUSER ||
     process.env.MYSQL_USER ||
-    process.env.DB_USERNAME ||
-    process.env.DB_USER;
-  // Password may be empty string on some local setups — treat only missing as absent.
+    "";
+
+  // Empty password is valid (local root often has none).
   const pass =
+    process.env.DB_PASSWORD ??
     process.env.MYSQLPASSWORD ??
     process.env.MYSQL_PASSWORD ??
-    process.env.DB_PASSWORD;
+    "";
+
   const name =
+    process.env.DATABASE ||
+    process.env.DB_NAME ||
     process.env.MYSQLDATABASE ||
     process.env.MYSQL_DATABASE ||
-    process.env.DATABASE ||
-    process.env.DB_NAME;
+    "";
+
   const port =
+    process.env.DB_PORT ||
     process.env.MYSQLPORT ||
     process.env.MYSQL_PORT ||
-    process.env.DB_PORT;
+    "3306";
+
+  return { host, user, pass, name, port };
+}
+
+function buildDatabaseUrlFromParts() {
+  const { host, user, pass, name, port } = readDbParts();
+
+  // Need at least username + database name to build a URL.
+  if (!user || !name) return null;
+
+  const auth = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}`;
+  const hostPort = port ? `${host}:${port}` : host;
   const protocol = process.env.DB_PROTOCOL || "mysql";
-
-  if (host && user != null && user !== "" && pass != null && name) {
-    const auth = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}`;
-    const hostPort = port ? `${host}:${port}` : host;
-    return `${protocol}://${auth}@${hostPort}/${name}`;
-  }
-
-  return null;
+  return `${protocol}://${auth}@${hostPort}/${name}`;
 }
 
 /**
- * Resolve a database URL for local + Railway.
- * Railway MySQL often injects MYSQL_URL / MYSQLHOST… but not DATABASE_URL
- * unless you map it yourself — support both so deploy does not crash.
+ * Resolve MySQL URL for local + Railway.
+ * Order: full URL vars first, then DB_* (and MYSQL*) parts.
  */
 function resolveDatabaseUrl() {
   const candidates = [
@@ -72,16 +88,21 @@ function resolveDatabaseUrl() {
 const databaseUrl = resolveDatabaseUrl();
 
 if (!databaseUrl) {
-  throw new Error(
-    "Missing database connection. Set DATABASE_URL (recommended), or link a Railway MySQL service " +
-      "so MYSQL_URL / MYSQLHOST+MYSQLUSER+MYSQLPASSWORD+MYSQLDATABASE are available. " +
-      "Local example: mysql://USER:PASSWORD@HOST:PORT/DATABASE",
+  // Do not hard-crash the process: Railway health checks need the server up.
+  // API routes that touch the DB will fail with a clear error instead.
+  console.error(
+    "[env] Missing database config. Set these variables:\n" +
+      "  DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DATABASE\n" +
+      "  (and PORT for the API)\n" +
+      "Or set DATABASE_URL / link a Railway MySQL service (MYSQL_*).",
   );
 }
 
 const env = {
-  port: Number(process.env.PORT) || 4000,
+  // Railway injects PORT; local default 3000.
+  port: Number(process.env.PORT) || 3000,
   // Bind all interfaces so Railway's proxy can reach the process.
+  // Locally you still reach it via http://localhost:<PORT>
   host: process.env.HOST || "0.0.0.0",
   databaseUrl,
   jwtSecret: process.env.JWT_SECRET || "change-this-secret-in-production",
@@ -93,3 +114,4 @@ const env = {
 
 module.exports = env;
 module.exports.resolveDatabaseUrl = resolveDatabaseUrl;
+module.exports.buildDatabaseUrlFromParts = buildDatabaseUrlFromParts;

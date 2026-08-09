@@ -3,41 +3,45 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
 /**
- * Same resolution order as src/config/env.js so `prisma migrate deploy`
- * works on Railway when only MYSQL_URL / MYSQLHOST… are injected.
+ * Same resolution as src/config/env.js so `prisma migrate deploy`
+ * works with DB_* vars locally and on Railway.
  */
 function resolveDatabaseUrl(): string {
   const fromParts = (): string | undefined => {
     const host =
+      process.env.DB_HOST ||
       process.env.MYSQLHOST ||
       process.env.MYSQL_HOST ||
-      process.env.DB_HOST ||
-      process.env.DB_HOSTNAME;
+      process.env.DB_HOSTNAME ||
+      "localhost";
     const user =
+      process.env.DB_USERNAME ||
+      process.env.DB_USER ||
       process.env.MYSQLUSER ||
       process.env.MYSQL_USER ||
-      process.env.DB_USERNAME ||
-      process.env.DB_USER;
+      "";
     const pass =
+      process.env.DB_PASSWORD ??
       process.env.MYSQLPASSWORD ??
       process.env.MYSQL_PASSWORD ??
-      process.env.DB_PASSWORD;
+      "";
     const name =
+      process.env.DATABASE ||
+      process.env.DB_NAME ||
       process.env.MYSQLDATABASE ||
       process.env.MYSQL_DATABASE ||
-      process.env.DATABASE ||
-      process.env.DB_NAME;
+      "";
     const port =
+      process.env.DB_PORT ||
       process.env.MYSQLPORT ||
       process.env.MYSQL_PORT ||
-      process.env.DB_PORT;
+      "3306";
 
-    if (host && user != null && user !== "" && pass != null && name) {
-      const auth = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}`;
-      const hostPort = port ? `${host}:${port}` : host;
-      return `mysql://${auth}@${hostPort}/${name}`;
-    }
-    return undefined;
+    if (!user || !name) return undefined;
+
+    const auth = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}`;
+    const hostPort = port ? `${host}:${port}` : host;
+    return `mysql://${auth}@${hostPort}/${name}`;
   };
 
   const value =
