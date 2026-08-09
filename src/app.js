@@ -21,8 +21,34 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+// Root — so opening the Railway public URL does not look "broken"
+app.get("/", (req, res) => {
+  res.json({
+    name: "Task Tracker API",
+    status: "ok",
+    health: "/api/health",
+    endpoints: {
+      auth: {
+        register: "POST /api/auth/register",
+        login: "POST /api/auth/login",
+        me: "GET /api/auth/me",
+      },
+      categories: "/api/categories",
+      tasks: "/api/tasks",
+    },
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.redirect(302, "/api/health");
+});
+
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    databaseConfigured: Boolean(env.databaseUrl),
+  });
 });
 
 app.use("/api/auth", authRoutes);
